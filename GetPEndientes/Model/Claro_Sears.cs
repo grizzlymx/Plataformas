@@ -139,7 +139,7 @@ namespace GetPEndientes.Model
                                 if (int.Parse(reg2) < 1)
                                 {
                                     var No = Nopedido + "-69-2738";
-                                    //insert2 = pendiente.InsertClaroDetail(Nopedido,entregara, direccion, entrecalles, colonia, del_municipio, cp, ciudad, estado, observaciones, telefono, idpedidorelaciondetail);
+                                    insert2 = pendiente.InsertClaroDetail(Nopedido,entregara, direccion, entrecalles, colonia, del_municipio, cp, ciudad, estado, observaciones, telefono, idpedidorelaciondetail);
                                     log.EscribeLog("Se inserto nuevo producto en Detail CS " + No);
                                 }
                             }
@@ -149,7 +149,7 @@ namespace GetPEndientes.Model
                                 if (int.Parse(reg2) < 1)
                                 {
                                     var No = Nopedido + "-69-2738";
-                                    //insert2 = pendiente.InsertSRDetail(Nopedido, entregara, direccion, entrecalles, colonia, del_municipio, cp, ciudad, estado, observaciones, telefono, idpedidorelaciondetail);
+                                    insert2 = pendiente.InsertSRDetail(Nopedido, entregara, direccion, entrecalles, colonia, del_municipio, cp, ciudad, estado, observaciones, telefono, idpedidorelaciondetail);
                                     log.EscribeLog("Se inserto nuevo producto en Detail SR " + No);
                                 }
                             }
@@ -160,13 +160,13 @@ namespace GetPEndientes.Model
                                 if (int.Parse(reg) < 1)
                                 {
                                     var No = Nopedido + "-69-2738";
-                                    //insert = pendiente.InsertClaro(Nopedido,status,fechColocacion,fechAutorizacion, sku, articulo, id, idpedidorelacion,fulfillment, sla,comision, totalproducto, totalpedido, skuhijo, channel,transactionid,No);
+                                    insert = pendiente.InsertClaro(Nopedido,status,fechColocacion,fechAutorizacion, sku, articulo, id, idpedidorelacion,fulfillment, sla,comision, totalproducto, totalpedido, skuhijo, channel,transactionid,No);
                                     log.EscribeLog("Se inserto nuevo producto CS " + No);
                                 }
                                 else
                                 {
                                     var No = Nopedido + "-69-2738";
-                                    //Update = pendiente.UpdateCS(transactionid, Nopedido);
+                                    Update = pendiente.UpdateCS(transactionid, Nopedido);
                                     log.EscribeLog("Se actualizo " + Nopedido);
                                 }
                             }
@@ -176,14 +176,14 @@ namespace GetPEndientes.Model
                                 if (int.Parse(reg) < 1)
                                 {
                                     var No = Nopedido + "-69-2738";
-                                    //insert = pendiente.InsertSears(Nopedido, status, fechColocacion, fechAutorizacion, sku, articulo, id, idpedidorelacion, fulfillment, sla, comision, totalproducto, totalpedido, skuhijo, channel, transactionid, No);
+                                    insert = pendiente.InsertSears(Nopedido, status, fechColocacion, fechAutorizacion, sku, articulo, id, idpedidorelacion, fulfillment, sla, comision, totalproducto, totalpedido, skuhijo, channel, transactionid, No);
                                     log.EscribeLog("Se inserto nuevo producto SR " + No);
 
                                 }
                                 else
                                 {
                                     var No = Nopedido + "-69-2738";
-                                    //Update = pendiente.UpdateSR(transactionid, Nopedido);
+                                    Update = pendiente.UpdateSR(transactionid, Nopedido);
                                     log.EscribeLog("Se actualizo " + Nopedido);
                                 }
                             }
