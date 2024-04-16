@@ -1,9 +1,11 @@
 ﻿using GetLabel_LP;
 using GetLabel_LP.Model;
+using GetLabel_LP.Services;
 using MySqlConnector;
 using System;
 using System.Configuration;
 using System.Data;
+using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 namespace Plataformas
 {
@@ -34,6 +36,7 @@ namespace Plataformas
                     var reference = order["reference_order_number"].ToString().Substring(0, 12);
                     var count_items_2 = int.Parse(order["count_items_2"].ToString());
                     var shipping_id_number = order["shipping_id_number"].ToString();
+                    var multi = int.Parse(order["multiguia"].ToString());
                     log.EscribeLog("soid: " + order["sale_order_id"]);
                     log.EscribeLog("reference_order_number: " + reference);
                     log.EscribeLog("qty: " + order["quantity"]);
@@ -45,20 +48,22 @@ namespace Plataformas
                     var pdf_base64 = string.Empty;
                     var modelLiver = new mdlLiverpool();
                     modelLiver.Login();
+                    var conteo= 0;
                     var type_documents = string.Empty;
                     var Type_Document = modelLiver.GetDocuments(reference, so);
-                    type_documents = Type_Document.order_documents[0].type;
-                    log.EscribeLog("type_document: "+ Type_Document.order_documents[0].type);
-
-                    if (type_documents != "SYSTEM_DELIVERY_BILL")
+                    var counts = Type_Document.order_documents.Count;
+                    var count_product = modelLiver.CountProduct(product_id, count_items, qty);
+                    for (var i = 0; i < counts; i++)
                     {
-                        pdf_base64 = modelLiver.GetLabelLiverpool(reference, Type_Document, product_id, so, qty, count_items);
+                        if (Type_Document.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
+                        {
+                            conteo++;
+                        }
                     }
-                    else
+                    if(conteo > qty)
                     {
-                        log.EscribeLog("El documento aun no tiene la guia se encuentra diferente de DELIVERY " + so);
+                        pdf_base64 = modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi);
                     }
-
                 }
             }
             catch (Exception ex) 
