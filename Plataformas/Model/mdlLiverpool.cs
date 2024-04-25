@@ -159,7 +159,12 @@ namespace GetLabel_LP.Model
                     count_label = "1";
                 }
                 else
-                        if (qty > 1 && qty_laber == 1)
+                 if (qty_laber >= qty && qty_product_laber == qty)
+                {
+                    count_label = qty_laber.ToString();
+                }
+                else
+                    if (qty > 1 && qty_laber == 1)
                 {
                     decimal total = qty / qty_product_laber;
                     if (total == 0)
@@ -170,7 +175,6 @@ namespace GetLabel_LP.Model
                     {
                         count_label = total.ToString();
                     }
-
                 }
                 else
                 {
@@ -198,6 +202,8 @@ namespace GetLabel_LP.Model
                 var countlabel = string.Empty;
                 var cn = new clsConexion();
                 var log = new clsLog();
+                var insert = false;
+                var countInser = 0;
 
                 var counts = respons.order_documents.Count;
 
@@ -208,7 +214,7 @@ namespace GetLabel_LP.Model
                         var id = respons.order_documents[i].id;
                         if (count_2 <= int.Parse(count_product))
                         {
-                            log.EscribeLog("-------------------");
+                            log.EscribeLog("**************************");
                             log.EscribeLog("Id del pedido: " + id);
                             var dt = cn.TraeDataTable("SELECT value FROM m_configuration WHERE name ='ENDPOINT_LP_PANAGEA_GETLABEL_DOWNS'", new MySqlParameter[] { }, CommandType.Text);
                             var dr = dt.Rows[0];
@@ -234,15 +240,38 @@ namespace GetLabel_LP.Model
                                     if (count <= qty )
                                     {
                                         Base64 = LabelPDF(zplandpdf);
-                                        InsertTrackingNumber(so, resultado, Base64);
-                                        count++;
+                                        if(Base64 != null)
+                                        {
+                                            InsertTrackingNumber(so, resultado, Base64);
+                                            countInser = countInser + 1;
+                                            countlabel = countInser + "/" + count_product;
+                                            log.EscribeLog("Núm_guias: " + countlabel);
+                                            updatecountlabel(so, countlabel);
+                                            count++;
+                                        }
+                                        else
+                                        {
+                                            log.EscribeLog("No bajo la guia");
+                                        }
                                     }
+                                    updatemulti(so, qty);
                                 }
                                 else
                                 {
                                     Base64 = LabelPDF(zplandpdf);
-                                    InsertTrackingNumber(so, resultado, Base64);
-                                    count++;
+                                    if (Base64 != null)
+                                    {
+                                        InsertTrackingNumber(so, resultado, Base64);
+                                        countInser = countInser + 1;
+                                        countlabel = countInser + "/" + count_product;
+                                        log.EscribeLog("Núm_guias: " + countlabel);
+                                        updatecountlabel(so, countlabel);
+                                        count++;
+                                    }
+                                    else
+                                    {
+                                        log.EscribeLog("No bajo la guia");
+                                    }
                                 }
                                 count_2++;
                             }
@@ -253,13 +282,11 @@ namespace GetLabel_LP.Model
                         }
                     }
                 }
-
                 return null;
             }
 
             catch (Exception ex)
             {
-
                 return null;
             }
         }
@@ -337,6 +364,37 @@ namespace GetLabel_LP.Model
             catch (Exception ex)
             {
                 return null;
+            }
+        }
+
+        public bool updatemulti(string sale_order_id, int numguias)
+        {
+            var cn = new clsConexion();
+            try
+            {
+                cn.EjecutaConsulta("UPDATE sale_order_header SET multiguia_flag = " + numguias + " WHERE sale_order_id = " + sale_order_id,
+                    new MySqlParameter[] { }, CommandType.Text);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public bool updatecountlabel(string sale_order_id, string numguias)
+        {
+            var cn = new clsConexion();
+            try
+            {
+                cn.EjecutaConsulta("UPDATE sale_order_header SET count_label = '" + numguias + "' WHERE sale_order_id = " + sale_order_id,
+                    new MySqlParameter[] { }, CommandType.Text);
+                return true;
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
     }
