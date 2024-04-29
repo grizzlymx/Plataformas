@@ -192,7 +192,7 @@ namespace GetLabel_LP.Model
             }
 
         }
-        public string GetLabelLiverpool(clsGetDocuments respons, string count_product, string so, int qty, int multi)
+        public string GetLabelLiverpool(clsGetDocuments respons, string count_product, string so, int qty, int multi, string carrier)
         {
             try
             {
@@ -204,13 +204,13 @@ namespace GetLabel_LP.Model
                 var log = new clsLog();
                 var insert = false;
                 var countInser = 0;
-
                 var counts = respons.order_documents.Count;
 
                 for (var i = 0; i < counts; i++)
                 {
                     if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
                     {
+                        var resultado = string.Empty;
                         var id = respons.order_documents[i].id;
                         if (count_2 <= int.Parse(count_product))
                         {
@@ -226,8 +226,23 @@ namespace GetLabel_LP.Model
                             var response = client.Execute(request);
                             var zplandpdf = response.Content;
                             //Bloque para sacar el tracking
-                            int startIndex = zplandpdf.IndexOf(">;") + 24;
-                            string resultado = zplandpdf.Substring(startIndex,12);
+                            switch (carrier)
+                            {
+                                case "FEDEX":
+                                    int startIndex = zplandpdf.IndexOf(">;") + 24;
+                                    resultado = zplandpdf.Substring(startIndex, 12);
+                                    break;
+                                case "ESTAFETA":
+                                    /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
+                                    resultado = zplandpdf.Substring(InitIndex, 12);*/
+                                    string patron = @"\^BY3,3(.*?)\^FS";
+                                    Match match = Regex.Match(zplandpdf, patron);
+                                    var cadena = match.Groups[1].Value;
+                                    resultado = cadena.Substring(26, 22);
+                                    break;
+                            }
+                            /*int startIndex = zplandpdf.IndexOf(">;") + 24;
+                            string resultado = zplandpdf.Substring(startIndex,12);*/
 
                             log.EscribeLog("tracking: " + resultado);
                             //compara si existe el tracking en la tabla
@@ -271,6 +286,10 @@ namespace GetLabel_LP.Model
                                     else
                                     {
                                         log.EscribeLog("No bajo la guia");
+                                    }
+                                    if(int.Parse(count_product) > 1)
+                                    {
+                                        updatemulti(so, countInser);
                                     }
                                 }
                                 count_2++;
@@ -397,5 +416,6 @@ namespace GetLabel_LP.Model
                 throw;
             }
         }
+
     }
 }

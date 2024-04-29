@@ -37,6 +37,7 @@ namespace Plataformas
                     var count_items_2 = int.Parse(order["count_items_2"].ToString());
                     var shipping_id_number = order["shipping_id_number"].ToString();
                     var multi = int.Parse(order["multiguia"].ToString());
+                    var carrier = order["carrier_name"].ToString();
                     log.EscribeLog("soid: " + order["sale_order_id"]);
                     log.EscribeLog("reference_order_number: " + reference);
                     log.EscribeLog("qty: " + order["quantity"]);
@@ -62,7 +63,7 @@ namespace Plataformas
                     }
                     if(conteo > qty)
                     {
-                        pdf_base64 = modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi);
+                        pdf_base64 = modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi, carrier);
                     }
                 }
             }
