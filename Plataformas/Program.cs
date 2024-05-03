@@ -5,6 +5,7 @@ using MySqlConnector;
 using System;
 using System.Configuration;
 using System.Data;
+using System.Threading;
 using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 namespace Plataformas
@@ -25,6 +26,7 @@ namespace Plataformas
                 log.EscribeLog(data.Rows.Count + " pedidos");
                 foreach ( DataRow order in data.Rows )
                 {
+                    
                     log.EscribeLog("-----------------");
                     var so = order["sale_order_id"].ToString();
                     var sale_order = "so:" + order["sale_order_id"];
@@ -37,16 +39,12 @@ namespace Plataformas
                     var count_items_2 = int.Parse(order["count_items_2"].ToString());
                     var shipping_id_number = order["shipping_id_number"].ToString();
                     var multi = int.Parse(order["multiguia"].ToString());
-                    var carrier = order["carrier_name"].ToString();
                     log.EscribeLog("soid: " + order["sale_order_id"]);
                     log.EscribeLog("reference_order_number: " + reference);
                     log.EscribeLog("qty: " + order["quantity"]);
                     log.EscribeLog("count_items: " + count_items);
                     log.EscribeLog("seller_sku: " + sellerku);
-                    log.EscribeLog("product_id: " + product_id);
-                    
-                    var tracking_number = string.Empty;
-                    var pdf_base64 = string.Empty;
+                    log.EscribeLog("product_id: " + product_id); 
                     var modelLiver = new mdlLiverpool();
                     modelLiver.Login();
                     var conteo= 0;
@@ -54,16 +52,52 @@ namespace Plataformas
                     var Type_Document = modelLiver.GetDocuments(reference, so);
                     var counts = Type_Document.order_documents.Count;
                     var count_product = modelLiver.CountProduct(product_id, count_items, qty);
-                    for (var i = 0; i < counts; i++)
+                    var GetOrders = modelLiver.GetOrder(reference);
+                    try
                     {
-                        if (Type_Document.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
+                        if (GetOrders != null)
                         {
-                            conteo++;
+                            if(GetOrders.orders[0].shipping_company != null && GetOrders.orders[0].shipping_tracking != null)
+                            {
+                                var name_carrier = GetOrders.orders[0].shipping_company.ToString();
+                                var tracking_number_get = GetOrders.orders[0].shipping_tracking.ToString();
+                                for (var i = 0; i < counts; i++)
+                                {
+                                    if (Type_Document.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
+                                    {
+                                        conteo++;
+                                    }
+                                }
+                                if (count_items > 1)
+                                {
+                                    if (conteo > qty)
+                                    {
+                                        modelLiver.GetLabelLiverpoolCarritos(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
+                                    }
+                                }
+                                else
+                                if (count_items == 1)
+                                {
+                                    if (conteo >= int.Parse(count_product))
+                                    {
+                                        modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                log.EscribeLog("El Tracking esta nulo");
+                            }
+                        }
+                        else
+                        {
+                            log.EscribeLog("aun no tiene guias");
                         }
                     }
-                    if(conteo > qty)
+                    catch (Exception e)
                     {
-                        pdf_base64 = modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi, carrier);
+                        log.EscribeLog("Error al consumir el GetOrders");
+
                     }
                 }
             }
