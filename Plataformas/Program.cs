@@ -17,6 +17,7 @@ namespace Plataformas
             var log = new clsLog();
             var cont = 0; 
             var cn = new clsConexion();
+            var UandI = new UpandInsert();
 
             try
             {
@@ -26,7 +27,6 @@ namespace Plataformas
                 log.EscribeLog(data.Rows.Count + " pedidos");
                 foreach ( DataRow order in data.Rows )
                 {
-                    
                     log.EscribeLog("-----------------");
                     var so = order["sale_order_id"].ToString();
                     var sale_order = "so:" + order["sale_order_id"];
@@ -47,7 +47,8 @@ namespace Plataformas
                     log.EscribeLog("product_id: " + product_id); 
                     var modelLiver = new mdlLiverpool();
                     modelLiver.Login();
-                    var conteo= 0;
+                    var conteo = 0;
+                    var guias = false;
                     var type_documents = string.Empty;
                     var Type_Document = modelLiver.GetDocuments(reference, so);
                     var counts = Type_Document.order_documents.Count;
@@ -55,43 +56,66 @@ namespace Plataformas
                     var GetOrders = modelLiver.GetOrder(reference);
                     try
                     {
-                        if (GetOrders != null)
+                        for (int i = 0; counts > i; i++)
                         {
-                            if(GetOrders.orders[0].shipping_company != null && GetOrders.orders[0].shipping_tracking != null)
+                            if (Type_Document.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
                             {
-                                var name_carrier = GetOrders.orders[0].shipping_company.ToString();
-                                var tracking_number_get = GetOrders.orders[0].shipping_tracking.ToString();
-                                for (var i = 0; i < counts; i++)
+                                conteo++;
+                            }
+                        }
+                        if(conteo != 0)
+                        {
+                            if (GetOrders != null)
+                            {
+                                if (GetOrders.orders[0].shipping_company != null && GetOrders.orders[0].shipping_tracking != null)
                                 {
-                                    if (Type_Document.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
+                                    var name_carrier = GetOrders.orders[0].shipping_company.ToString();
+                                    var tracking_number_get = GetOrders.orders[0].shipping_tracking.ToString();
+                                    guias = modelLiver.Check(Type_Document, name_carrier);//checa si existen las guias necesarias y no estan repetidas 
+                                    if (guias == true)
                                     {
-                                        conteo++;
-                                    }
-                                }
-                                if (count_items > 1)
-                                {
-                                    if (conteo > qty)
-                                    {
-                                        modelLiver.GetLabelLiverpoolCarritos(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
+                                        if (count_items > 1)
+                                        {
+                                            if (conteo > qty)
+                                            {
+                                                modelLiver.GetLabelLiverpoolCarritos(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
+                                            }
+                                            else
+                                            {
+                                                var countlabel = conteo + "/" + count_items;
+                                                log.EscribeLog("Núm_guias: " + countlabel);
+                                                UandI.updatecountlabel(so, countlabel);
+                                            }
+                                        }
+                                        else
+                                            if (count_items <= 1)
+                                        {
+                                            if (conteo >= int.Parse(count_product))
+                                            {
+                                                modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
+                                            }
+                                            else
+                                            {
+                                                var countlabel = conteo + "/" + count_product;
+                                                log.EscribeLog("Núm_guias: " + countlabel);
+                                                UandI.updatecountlabel(so, countlabel);
+                                            }
+                                        }
                                     }
                                 }
                                 else
-                                if (count_items == 1)
                                 {
-                                    if (conteo >= int.Parse(count_product))
-                                    {
-                                        modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
-                                    }
+                                    log.EscribeLog("El Tracking esta nulo");
                                 }
                             }
                             else
                             {
-                                log.EscribeLog("El Tracking esta nulo");
+                                log.EscribeLog("aun no tiene guias");
                             }
                         }
                         else
                         {
-                            log.EscribeLog("aun no tiene guias");
+                            log.EscribeLog("Solo trae el SYSTEM_DELIVERY_BILL");
                         }
                     }
                     catch (Exception e)

@@ -125,7 +125,27 @@ namespace GetLabel_LP.Model
                 var dr2 = dt2.Rows[0];
                 quantity_label = dr2["quantity_label"].ToString();
                 quantity_product_label = dr2["quantity_product_label"].ToString();
+                if (quantity_label == null || quantity_label == "" || quantity_product_label == null || quantity_product_label == "")
+                {
+                   if (quantity_label == null && quantity_product_label == null || quantity_label == "" && quantity_product_label == "")
+                    {
+                        quantity_label = "1";
+                        quantity_product_label = "1";
+                    }
+                   else
+                        if(quantity_product_label == null || quantity_product_label == "")
+                        {
+                            quantity_product_label= "1";
+                        }
+                        else
+                        {
+                            if(quantity_label == null || quantity_label == "")
+                            {
+                                quantity_label = "1";
+                            }
+                        }
 
+                }
                 var qty_laber = int.Parse(quantity_label);
                 var qty_product_laber = int.Parse(quantity_product_label);
 
@@ -159,7 +179,15 @@ namespace GetLabel_LP.Model
                 }
                 else
                 {
-                    count_label = "1";
+                    decimal total = qty / qty_product_laber;
+                    if (total == 0)
+                    {
+                        count_label = "1";
+                    }
+                    else
+                    {
+                        count_label = total.ToString();
+                    }
                 }
                 log.EscribeLog("valor count_label:" + count_label);
 
@@ -204,16 +232,36 @@ namespace GetLabel_LP.Model
                                 switch (carrier)
                                 {
                                     case "FEDEX":
-                                        int startIndex = zplandpdf.IndexOf(">;") + 24;
-                                        resultado = zplandpdf.Substring(startIndex, 12);
+                                        /*int startIndex = zplandpdf.IndexOf(">;") + 24;
+                                        resultado = zplandpdf.Substring(startIndex, 12);*/
+                                        string caracteres = @"\>;(.*?)\^FS";
+                                        Match mat = Regex.Match(zplandpdf, caracteres);
+                                        var Tracking = mat.Groups[1].Value;
+                                        resultado = Tracking.Substring(22, 12);
                                         break;
                                     case "ESTAFETA":
                                         /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
                                         resultado = zplandpdf.Substring(InitIndex, 12);*/
-                                        string patron = @"\^BY3,3(.*?)\^FS";
+                                        //string patron = @"\^BY3,3(.*?)\^FS";
+                                        //Match match = Regex.Match(zplandpdf, patron);
+                                        //var cadena = match.Groups[1].Value;
+                                        //resultado = cadena.Substring(26, 22);
+                                        string patron = @"FD\w{22}";
                                         Match match = Regex.Match(zplandpdf, patron);
-                                        var cadena = match.Groups[1].Value;
-                                        resultado = cadena.Substring(26, 22);
+                                        if (match.Success)
+                                        {
+                                            resultado = match.Value.Substring(2);
+                                        }
+                                        else
+                                        {
+                                            log.EscribeLog("no se encontro el patron");
+                                        }
+                                        break;
+                                    case "UPS":
+                                        string caracter = @"\^FO66(.*?)\^FS";
+                                        Match matc = Regex.Match(zplandpdf, caracter);
+                                        var track = matc.Groups[1].Value;
+                                        resultado = track.Substring(27, 18);
                                         break;
                                 }
                             }
@@ -283,7 +331,6 @@ namespace GetLabel_LP.Model
                 return null;
             }
         }
-
         public string GetLabelLiverpool(clsGetDocuments respons, string count_product, string so, int qty, int multi, string carrier, int count_items, string resultado)
         {
             try
@@ -304,7 +351,7 @@ namespace GetLabel_LP.Model
                 {
                     if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
                     {
-                        var id = respons.order_documents[i].id;
+                            var id = respons.order_documents[i].id;
                             log.EscribeLog("**************************");
                             log.EscribeLog("Id del pedido: " + id);
                             var zplandpdf = DownsZPL(id);
@@ -313,16 +360,36 @@ namespace GetLabel_LP.Model
                             switch (carrier)
                             {
                                 case "FEDEX":
-                                    int startIndex = zplandpdf.IndexOf(">;") + 24;
-                                    resultado = zplandpdf.Substring(startIndex, 12);
+                                    /*int startIndex = zplandpdf.IndexOf(">;") + 24;
+                                    resultado = zplandpdf.Substring(startIndex, 12);*/
+                                    string caracteres = @"\>;(.*?)\^FS";
+                                    Match mat = Regex.Match(zplandpdf, caracteres);
+                                    var Tracking = mat.Groups[1].Value;
+                                    resultado = Tracking.Substring(22, 12);
                                     break;
                                 case "ESTAFETA":
                                     /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
                                     resultado = zplandpdf.Substring(InitIndex, 12);*/
-                                    string patron = @"\^BY3,3(.*?)\^FS";
+                                    //string patron = @"\^BY3,3(.*?)\^FS";
+                                    //Match match = Regex.Match(zplandpdf, patron);
+                                    //var cadena = match.Groups[1].Value;
+                                    //resultado = cadena.Substring(26, 22);
+                                    string patron = @"FD\w{22}";
                                     Match match = Regex.Match(zplandpdf, patron);
-                                    var cadena = match.Groups[1].Value;
-                                    resultado = cadena.Substring(26, 22);
+                                    if (match.Success)
+                                    {
+                                        resultado = match.Value.Substring(2);
+                                    }
+                                    else
+                                    {
+                                        log.EscribeLog("no se encontro el patron");
+                                    }
+                                    break;
+                                case "UPS":
+                                    string caracter = @"\^FO66(.*?)\^FS";
+                                    Match matc = Regex.Match(zplandpdf, caracter);
+                                    var track = matc.Groups[1].Value;
+                                    resultado = track.Substring(27, 18);
                                     break;
                             }
                             }
@@ -399,16 +466,31 @@ namespace GetLabel_LP.Model
             var url = string.Empty;
             try
             {
-                var dt = cn.TraeDataTable("SELECT value FROM m_configuration WHERE name ='ENDPOINT_LP_PANAGEA_GETLABEL_DOWNS'", new MySqlParameter[] { }, CommandType.Text);
-                var dr = dt.Rows[0];
-                url = dr["value"].ToString();
+                var init = 0;
+                var stop = 5;
+                while (init < stop)
+                {
+                    init++;
+                    var dt = cn.TraeDataTable("SELECT value FROM m_configuration WHERE name ='ENDPOINT_LP_PANAGEA_GETLABEL_DOWNS'", new MySqlParameter[] { }, CommandType.Text);
+                    var dr = dt.Rows[0];
+                    url = dr["value"].ToString();
 
-                var client = new RestClient(url + id);
-                var request = new RestRequest("", Method.GET, DataFormat.Json);
-                request.AddHeader("Authorization", toke);
-                var response = client.Execute(request);
-                var zplandpdf = response.Content;
-                return zplandpdf;
+                    var client = new RestClient(url + id);
+                    var request = new RestRequest("", Method.GET, DataFormat.Json);
+                    request.AddHeader("Authorization", toke);
+                    var response = client.Execute(request);
+                    var zplandpdf = response.Content;
+                    if(zplandpdf != null)
+                    {
+                        return zplandpdf;
+                    }
+                    else
+                    {
+                        log.EscribeLog("intento " + init);
+                        Thread.Sleep(10000);
+                    }
+                }
+                return null;
             }
             catch (Exception ex)
             {
@@ -418,38 +500,53 @@ namespace GetLabel_LP.Model
 
         public string LabelPDF(string ZPL)
         {
+            var log = new clsLog();
             try
             {
-                byte[] zpl = Encoding.UTF8.GetBytes(ZPL);
-
-                var request = (HttpWebRequest)WebRequest.Create("http://api.labelary.com/v1/printers/8dpmm/labels/5x8/0/");
-                request.Method = "POST";
-                request.Accept = "application/pdf"; // omit this line to get PNG images back
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.ContentLength = zpl.Length;
-
-                var requestStream = request.GetRequestStream();
-                requestStream.Write(zpl, 0, zpl.Length);
-                requestStream.Close();
-
-                var response = (HttpWebResponse)request.GetResponse();
-                var responseStream = response.GetResponseStream();
-                byte[] bytes;
-                using (MemoryStream ms = new MemoryStream())
+                var init = 0;
+                var stop = 5;
+                while(init < stop)
                 {
-                    responseStream.CopyTo(ms);
-                    bytes = ms.ToArray();
+                    init++;
+                    byte[] zpl = Encoding.UTF8.GetBytes(ZPL);
+
+                    var request = (HttpWebRequest)WebRequest.Create("http://api.labelary.com/v1/printers/8dpmm/labels/5x8/0/");
+                    request.Method = "POST";
+                    request.Accept = "application/pdf";
+                    request.ContentType = "application/x-www-form-urlencoded";
+                    request.ContentLength = zpl.Length;
+
+                    var requestStream = request.GetRequestStream();
+                    requestStream.Write(zpl, 0, zpl.Length);
+                    requestStream.Close();
+
+                    var response = (HttpWebResponse)request.GetResponse();
+                    var responseStream = response.GetResponseStream();
+                    byte[] bytes;
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        responseStream.CopyTo(ms);
+                        bytes = ms.ToArray();
+                    }
+                    string Base64 = Convert.ToBase64String(bytes);
+                    responseStream.Close();
+                    if(Base64 != null)
+                    {
+                        return Base64;
+                    }
+                    else
+                    {
+                        log.EscribeLog("La api de LabelPDF no respondio intento "+ init);
+                        Thread.Sleep(10000);
+                    }
                 }
-                string Base64 = Convert.ToBase64String(bytes);
-                responseStream.Close(); 
-                return Base64;
+                return null;
             }
             catch (Exception ex)
             {
                 return null;
             }
         }
-
         public GetOrders GetOrder(string reference)
         {
             var cn = new clsConexion();
@@ -488,6 +585,98 @@ namespace GetLabel_LP.Model
                 return null;
             }
 
+        }
+
+        public bool Check(clsGetDocuments respons,string carrier)
+        {
+            var cn = new clsLog();
+            var log = new clsLog();
+            var UandI = new UpandInsert();
+            var count = 0;
+            try
+            {
+                var counts = respons.order_documents.Count;
+                log.EscribeLog("~~~~~~~~~~~~~~~~~~~~");
+                log.EscribeLog("Conteo de guias");
+                var resultado = string.Empty;
+                for (var i = 0; i < counts; i++)
+                {
+                    string tracking_compare = resultado;
+                    if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
+                    {
+                        var id = respons.order_documents[i].id;
+                        var zplandpdf = DownsZPL(id);
+                        switch (carrier)
+                        {
+                            case "FEDEX":
+                                /*int startIndex = zplandpdf.IndexOf(">;") + 24;
+                                resultado = zplandpdf.Substring(startIndex, 12);*/
+                                string caracteres = @"\>;(.*?)\^FS";
+                                Match mat = Regex.Match(zplandpdf, caracteres);
+                                var Tracking = mat.Groups[1].Value;
+                                resultado = Tracking.Substring(22, 12);
+                                if (i == 0)
+                                {
+                                    tracking_compare = resultado;
+                                }
+                                break;
+                            case "ESTAFETA":
+                                /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
+                                resultado = zplandpdf.Substring(InitIndex, 12);*/
+                                //string patron = @"\^BY3,3(.*?)\^FS";
+                                //Match match = Regex.Match(zplandpdf, patron);
+                                //var cadena = match.Groups[1].Value;
+                                //resultado = cadena.Substring(26, 22);
+                                string patron = @"FD\w{22}";
+                                Match match = Regex.Match(zplandpdf, patron);
+                                if (match.Success)
+                                {
+                                    resultado = match.Value.Substring(2);
+                                }
+                                else
+                                {
+                                    log.EscribeLog("no se encontro el patron");
+                                }
+                                //resultado = match.Value;
+                                if (i == 0)
+                                {
+                                    tracking_compare = resultado;
+                                }
+                                break;
+                            case "UPS":
+                                string caracter = @"\^FO66(.*?)\^FS";
+                                Match matc = Regex.Match(zplandpdf, caracter);
+                                var track = matc.Groups[1].Value;
+                                resultado = track.Substring(27, 18);
+                                if (i == 0)
+                                {
+                                    tracking_compare = resultado;
+                                }
+                                break;
+                        }
+                        if(i != 0)
+                        {
+                            if (tracking_compare != resultado)
+                            {
+                                log.EscribeLog("las guias no vienen duplicadas");
+                                return true;
+                            }
+                            else
+                            {
+                                log.EscribeLog("esta duplicado el tracking");
+                                return false;
+                            }
+                        }
+                    }
+                }
+                log.EscribeLog("solo trae una guia ");
+                    return true;
+            }
+            catch (Exception ex)
+            {
+                log.EscribeLog("Error al checar el conteo de las guias que hay");
+                return false;
+            }
         }
     }
 }
