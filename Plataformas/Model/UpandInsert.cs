@@ -75,7 +75,7 @@ namespace GetLabel_LP.Model
                                    new MySqlParameter("@sale_order_id", sale_order_id)
 
             }, CommandType.Text);
-                var val = val_tracking(tracking_number, sale_order_id);
+                var val = val_tracking(tracking_number, sale_order_id,0);
             }
             catch (Exception ex)
             {
@@ -103,7 +103,7 @@ namespace GetLabel_LP.Model
             }
         }
 
-        public string val_tracking(string tracking_number, string sale_order_id)
+        public string val_tracking(string tracking_number, string sale_order_id, int val_proceso)
         {
             var cn = new clsConexion();
             var log = new clsLog();
@@ -117,21 +117,17 @@ namespace GetLabel_LP.Model
                 if (tracking_number.Length == 10)
                 {
                     carrier_name = "DHL";
-
                 }
                 else
                 if (tracking_number.Length == 12)
                 {
                     carrier_name = "FEDEX";
-
                 }
                 else
                 if (tracking_number.Length == 18)
                 {
                     carrier_name = "UPS";
-
                 }
-
                 else
                 if (tracking_number.Length == 22)
                 {
@@ -163,7 +159,9 @@ namespace GetLabel_LP.Model
                         carrier_id = 1;
                         break;
                 }
-                cn.EjecutaConsulta("UPDATE shipping_label_info SET carrier_name =@carrier_name, service_type =@service_type, shipment_cost='0.00' WHERE sale_order_id =@sale_order_id",
+                if(val_proceso == 0)
+                {
+                    cn.EjecutaConsulta("UPDATE shipping_label_info SET carrier_name =@carrier_name, service_type =@service_type, shipment_cost='0.00' WHERE sale_order_id =@sale_order_id",
                            new[]
                        {
                                 new MySqlParameter("@sale_order_id",sale_order_id),
@@ -172,20 +170,21 @@ namespace GetLabel_LP.Model
 
                        }, CommandType.Text);
 
-                cn.EjecutaConsulta("UPDATE sale_order_header SET shipment_provider =@carrier_name, carrier_id =@carrier_id, tracking_number = @tracking_number WHERE sale_order_id = @sale_order_id",
-                 new[] {
+                    cn.EjecutaConsulta("UPDATE sale_order_header SET shipment_provider =@carrier_name, carrier_id =@carrier_id, tracking_number = @tracking_number WHERE sale_order_id = @sale_order_id",
+                     new[] {
 
-                           new MySqlParameter("@carrier_name", carrier_name),
-                           new MySqlParameter("@carrier_id", carrier_id),
-                           new MySqlParameter("@tracking_number", tracking_number),
-                           new MySqlParameter("@sale_order_id", sale_order_id)
+                               new MySqlParameter("@carrier_name", carrier_name),
+                               new MySqlParameter("@carrier_id", carrier_id),
+                               new MySqlParameter("@tracking_number", tracking_number),
+                               new MySqlParameter("@sale_order_id", sale_order_id)
 
-                }, CommandType.Text);
+                    }, CommandType.Text);
 
-                log.EscribeLog("tracking_number: " + tracking_number);
-                log.EscribeLog("carrier_name: " + carrier_name);
-                return tracking_number;
-
+                    log.EscribeLog("tracking_number: " + tracking_number);
+                    log.EscribeLog("carrier_name: " + carrier_name);
+                    return tracking_number;
+                }
+                return carrier_name;
             }
             catch (Exception)
             {

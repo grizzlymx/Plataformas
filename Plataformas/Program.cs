@@ -48,7 +48,7 @@ namespace Plataformas
                     var modelLiver = new mdlLiverpool();
                     modelLiver.Login();
                     var conteo = 0;
-                    var guias = false;
+                    var guias = 0;
                     var type_documents = string.Empty;
                     var Type_Document = modelLiver.GetDocuments(reference, so);
                     var counts = Type_Document.order_documents.Count;
@@ -65,18 +65,18 @@ namespace Plataformas
                         }
                         if(conteo != 0)
                         {
-                            if (GetOrders != null)
+                            if (GetOrders.orders != null)
                             {
                                 if (GetOrders.orders[0].shipping_company != null && GetOrders.orders[0].shipping_tracking != null)
                                 {
                                     var name_carrier = GetOrders.orders[0].shipping_company.ToString();
                                     var tracking_number_get = GetOrders.orders[0].shipping_tracking.ToString();
-                                    guias = modelLiver.Check(Type_Document, name_carrier);//checa si existen las guias necesarias y no estan repetidas 
-                                    if (guias == true)
+                                    guias = modelLiver.Check(Type_Document, name_carrier,so);//checa si existen las guias necesarias y no estan repetidas 
+                                    if (guias >= int.Parse(count_product))
                                     {
                                         if (count_items > 1)
                                         {
-                                            if (conteo > qty)
+                                            if (conteo > int.Parse(count_product))
                                             {
                                                 modelLiver.GetLabelLiverpoolCarritos(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
                                             }
@@ -89,7 +89,7 @@ namespace Plataformas
                                         }
                                         else
                                             if (count_items <= 1)
-                                        {
+                                            {
                                             if (conteo >= int.Parse(count_product))
                                             {
                                                 modelLiver.GetLabelLiverpool(Type_Document, count_product, so, qty, multi, name_carrier, count_items, tracking_number_get);
@@ -110,7 +110,7 @@ namespace Plataformas
                             }
                             else
                             {
-                                log.EscribeLog("aun no tiene guias");
+                                log.EscribeLog("El GetOrders no trajo nada regreso nulo");
                             }
                         }
                         else

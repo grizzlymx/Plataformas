@@ -221,14 +221,155 @@ namespace GetLabel_LP.Model
                     if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
                     {
                         var id = respons.order_documents[i].id;
+                        string file_name = respons.order_documents[i].file_name;
+                        string result = file_name.Replace(".pdf", "");
                         if (count_2 <= int.Parse(count_product))
+                        {
+                            //casteo
+                            var carrier_Casteo = UandI.val_tracking(result, so,1);
+                            if(carrier_Casteo == carrier)
+                            {
+                                log.EscribeLog("**************************");
+                                log.EscribeLog("Id del pedido: " + id);
+                                var zplandpdf = DownsZPL(id);
+                                //Bloque para sacar el tracking
+                                if (count_items > 1 || multi == 1)
+                                {
+                                    switch (carrier)
+                                    {
+                                        case "FEDEX":
+                                            /*int startIndex = zplandpdf.IndexOf(">;") + 24;
+                                            resultado = zplandpdf.Substring(startIndex, 12);*/
+                                            string caracteres = @"\>;(.*?)\^FS";
+                                            Match mat = Regex.Match(zplandpdf, caracteres);
+                                            var Tracking = mat.Groups[1].Value;
+                                            resultado = Tracking.Substring(22, 12);
+                                            break;
+                                        case "ESTAFETA":
+                                            /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
+                                            resultado = zplandpdf.Substring(InitIndex, 12);*/
+                                            //string patron = @"\^BY3,3(.*?)\^FS";
+                                            //Match match = Regex.Match(zplandpdf, patron);
+                                            //var cadena = match.Groups[1].Value;
+                                            //resultado = cadena.Substring(26, 22);
+                                            string patron = @"FD\w{22}";
+                                            Match match = Regex.Match(zplandpdf, patron);
+                                            if (match.Success)
+                                            {
+                                                resultado = match.Value.Substring(2);
+                                            }
+                                            else
+                                            {
+                                                log.EscribeLog("no se encontro el patron");
+                                            }
+                                            break;
+                                        case "UPS":
+                                            string caracter = @"\^FO66(.*?)\^FS";
+                                            Match matc = Regex.Match(zplandpdf, caracter);
+                                            var track = matc.Groups[1].Value;
+                                            resultado = track.Substring(27, 18);
+                                            break;
+                                    }
+                                }
+                                log.EscribeLog("Carrier name: " + carrier);
+                                log.EscribeLog("tracking: " + resultado);
+                                //compara si existe el tracking en la tabla
+                                var reg = UandI.Tracking(resultado);
+                                if (reg == "0")
+                                {
+                                    var Base64 = string.Empty;
+                                    if (multi == 1)
+                                    {
+                                        if (count <= qty)
+                                        {
+                                            Base64 = LabelPDF(zplandpdf);
+                                            if (Base64 != null)
+                                            {
+                                                UandI.InsertTrackingNumber(so, resultado, Base64, carrier);
+                                                countInser = countInser + 1;
+                                                countlabel = countInser + "/" + count_product;
+                                                log.EscribeLog("Núm_guias: " + countlabel);
+                                                UandI.updatecountlabel(so, countlabel);
+                                                count++;
+                                            }
+                                            else
+                                            {
+                                                log.EscribeLog("No bajo la guia");
+                                            }
+                                        }
+                                        UandI.updatemulti(so, qty);
+                                    }
+                                    else
+                                    {
+                                        Base64 = LabelPDF(zplandpdf);
+                                        if (Base64 != null)
+                                        {
+                                            UandI.InsertTrackingNumber(so, resultado, Base64, carrier);
+                                            countInser = countInser + 1;
+                                            countlabel = countInser + "/" + count_product;
+                                            log.EscribeLog("Núm_guias: " + countlabel);
+                                            UandI.updatecountlabel(so, countlabel);
+                                            count++;
+                                        }
+                                        else
+                                        {
+                                            log.EscribeLog("No bajo la guia");
+                                        }
+                                        if (int.Parse(count_product) > 1)
+                                        {
+                                            UandI.updatemulti(so, countInser);
+                                        }
+                                    }
+                                    count_2++;
+                                }
+                                else
+                                {
+                                    log.EscribeLog("Existe el tracking en la tabla " + resultado);
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        public string GetLabelLiverpool(clsGetDocuments respons, string count_product, string so, int qty, int multi, string carrier, int count_items, string resultado)
+        {
+            try
+            {
+                var url = string.Empty;
+                var count = 1;
+                var count_2 = 1;
+                var countlabel = string.Empty;
+                var cn = new clsConexion();
+                var log = new clsLog();
+                var UandI = new UpandInsert();
+                var insert = false;
+                var countInser = 0;
+                
+                var counts = respons.order_documents.Count ;
+
+                for (var i = 0; i < counts;i++)
+                {
+                    if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
+                    {
+                        var id = respons.order_documents[i].id;
+                        string file_name = respons.order_documents[i].file_name;
+                        string result = file_name.Replace(".pdf", "");
+                        var carrier_Casteo = UandI.val_tracking(result, so, 1);
+                        if (carrier_Casteo == carrier)
                         {
                             log.EscribeLog("**************************");
                             log.EscribeLog("Id del pedido: " + id);
                             var zplandpdf = DownsZPL(id);
-                            //Bloque para sacar el tracking
-                            if(count_items > 1 || multi == 1)
+                            if (count_items > 1 || multi == 1 || int.Parse(count_product) >= 2)
                             {
+
                                 switch (carrier)
                                 {
                                     case "FEDEX":
@@ -265,135 +406,7 @@ namespace GetLabel_LP.Model
                                         break;
                                 }
                             }
-                            log.EscribeLog("Carrier name: " + carrier);
-                            log.EscribeLog("tracking: " + resultado);
-                            //compara si existe el tracking en la tabla
-                            var reg = UandI.Tracking(resultado);
-                            if (reg == "0")
-                            {
-                                var Base64 = string.Empty;
-                                if (multi == 1)
-                                {
-                                    if (count <= qty )
-                                    {
-                                        Base64 = LabelPDF(zplandpdf);
-                                        if(Base64 != null)
-                                        {
-                                            UandI.InsertTrackingNumber(so, resultado, Base64,carrier);
-                                            countInser = countInser + 1;
-                                            countlabel = countInser + "/" + count_product;
-                                            log.EscribeLog("Núm_guias: " + countlabel);
-                                            UandI.updatecountlabel(so, countlabel);
-                                            count++;
-                                        }
-                                        else
-                                        {
-                                            log.EscribeLog("No bajo la guia");
-                                        }
-                                    }
-                                    UandI.updatemulti(so, qty);
-                                }
-                                else
-                                {
-                                    Base64 = LabelPDF(zplandpdf);
-                                    if (Base64 != null)
-                                    {
-                                        UandI.InsertTrackingNumber(so, resultado, Base64, carrier);
-                                        countInser = countInser + 1;
-                                        countlabel = countInser + "/" + count_product;
-                                        log.EscribeLog("Núm_guias: " + countlabel);
-                                        UandI.updatecountlabel(so, countlabel);
-                                        count++;
-                                    }
-                                    else
-                                    {
-                                        log.EscribeLog("No bajo la guia");
-                                    }
-                                    if(int.Parse(count_product) > 1)
-                                    {
-                                        UandI.updatemulti(so, countInser);
-                                    }
-                                }
-                                count_2++;
-                            }
-                            else
-                            {
-                                log.EscribeLog("Existe el tracking en la tabla " + resultado);
-                            }
-                        }
-                    }
-                }
-                return null;
-            }
-
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
-        public string GetLabelLiverpool(clsGetDocuments respons, string count_product, string so, int qty, int multi, string carrier, int count_items, string resultado)
-        {
-            try
-            {
-                var url = string.Empty;
-                var count = 1;
-                var count_2 = 1;
-                var countlabel = string.Empty;
-                var cn = new clsConexion();
-                var log = new clsLog();
-                var UandI = new UpandInsert();
-                var insert = false;
-                var countInser = 0;
-                
-                var counts = respons.order_documents.Count ;
-
-                for (var i = 0; i < counts;i++)
-                {
-                    if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
-                    {
-                            var id = respons.order_documents[i].id;
-                            log.EscribeLog("**************************");
-                            log.EscribeLog("Id del pedido: " + id);
-                            var zplandpdf = DownsZPL(id);
-                            if(count_items > 1 || multi == 1|| int.Parse(count_product) >=2)
-                            {
-                            switch (carrier)
-                            {
-                                case "FEDEX":
-                                    /*int startIndex = zplandpdf.IndexOf(">;") + 24;
-                                    resultado = zplandpdf.Substring(startIndex, 12);*/
-                                    string caracteres = @"\>;(.*?)\^FS";
-                                    Match mat = Regex.Match(zplandpdf, caracteres);
-                                    var Tracking = mat.Groups[1].Value;
-                                    resultado = Tracking.Substring(22, 12);
-                                    break;
-                                case "ESTAFETA":
-                                    /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
-                                    resultado = zplandpdf.Substring(InitIndex, 12);*/
-                                    //string patron = @"\^BY3,3(.*?)\^FS";
-                                    //Match match = Regex.Match(zplandpdf, patron);
-                                    //var cadena = match.Groups[1].Value;
-                                    //resultado = cadena.Substring(26, 22);
-                                    string patron = @"FD\w{22}";
-                                    Match match = Regex.Match(zplandpdf, patron);
-                                    if (match.Success)
-                                    {
-                                        resultado = match.Value.Substring(2);
-                                    }
-                                    else
-                                    {
-                                        log.EscribeLog("no se encontro el patron");
-                                    }
-                                    break;
-                                case "UPS":
-                                    string caracter = @"\^FO66(.*?)\^FS";
-                                    Match matc = Regex.Match(zplandpdf, caracter);
-                                    var track = matc.Groups[1].Value;
-                                    resultado = track.Substring(27, 18);
-                                    break;
-                            }
-                            }
-                        //Bloque para sacar el tracking
+                            //Bloque para sacar el tracking
                             log.EscribeLog("Carrier name: " + carrier);
                             log.EscribeLog("tracking: " + resultado);
                             //compara si existe el tracking en la tabla
@@ -448,7 +461,9 @@ namespace GetLabel_LP.Model
                             else
                             {
                                 log.EscribeLog("Existe el tracking en la tabla " + resultado);
+                            }
                         }
+                            
                     }
                 }
                 return null;
@@ -587,7 +602,7 @@ namespace GetLabel_LP.Model
 
         }
 
-        public bool Check(clsGetDocuments respons,string carrier)
+        public int Check(clsGetDocuments respons,string carrier,string so)
         {
             var cn = new clsLog();
             var log = new clsLog();
@@ -599,83 +614,85 @@ namespace GetLabel_LP.Model
                 log.EscribeLog("~~~~~~~~~~~~~~~~~~~~");
                 log.EscribeLog("Conteo de guias");
                 var resultado = string.Empty;
+                List<string> variables = new List<string>();
                 for (var i = 0; i < counts; i++)
                 {
                     string tracking_compare = resultado;
                     if (respons.order_documents[i].type != "SYSTEM_DELIVERY_BILL")
                     {
                         var id = respons.order_documents[i].id;
-                        var zplandpdf = DownsZPL(id);
-                        switch (carrier)
+                        string file_name = respons.order_documents[i].file_name;
+                        string result = file_name.Replace(".pdf", "");
+                        var carrier_Casteo = UandI.val_tracking(result, so, 1);
+                        if (carrier_Casteo == carrier)
                         {
-                            case "FEDEX":
-                                /*int startIndex = zplandpdf.IndexOf(">;") + 24;
-                                resultado = zplandpdf.Substring(startIndex, 12);*/
-                                string caracteres = @"\>;(.*?)\^FS";
-                                Match mat = Regex.Match(zplandpdf, caracteres);
-                                var Tracking = mat.Groups[1].Value;
-                                resultado = Tracking.Substring(22, 12);
-                                if (i == 0)
-                                {
-                                    tracking_compare = resultado;
-                                }
-                                break;
-                            case "ESTAFETA":
-                                /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
-                                resultado = zplandpdf.Substring(InitIndex, 12);*/
-                                //string patron = @"\^BY3,3(.*?)\^FS";
-                                //Match match = Regex.Match(zplandpdf, patron);
-                                //var cadena = match.Groups[1].Value;
-                                //resultado = cadena.Substring(26, 22);
-                                string patron = @"FD\w{22}";
-                                Match match = Regex.Match(zplandpdf, patron);
-                                if (match.Success)
-                                {
+                            var zplandpdf = DownsZPL(id);
+                            switch (carrier)
+                            {
+                                case "FEDEX":
+                                    /*int startIndex = zplandpdf.IndexOf(">;") + 24;
+                                    resultado = zplandpdf.Substring(startIndex, 12);*/
+                                    string caracteres = @"\>;(.*?)\^FS";
+                                    Match mat = Regex.Match(zplandpdf, caracteres);
+                                    var Tracking = mat.Groups[1].Value;
+                                    resultado = Tracking.Substring(22, 12);
+                                    break;
+                                case "ESTAFETA":
+                                    /*int InitIndex = zplandpdf.IndexOf("^BY3,3") + 24;
+                                    resultado = zplandpdf.Substring(InitIndex, 12);*/
+                                    //string patron = @"\^BY3,3(.*?)\^FS";
+                                    //Match match = Regex.Match(zplandpdf, patron);
+                                    //var cadena = match.Groups[1].Value;
+                                    //resultado = cadena.Substring(26, 22);
+                                    string patron = @"FD\w{22}";
+                                    Match match = Regex.Match(zplandpdf, patron);
                                     resultado = match.Value.Substring(2);
-                                }
-                                else
-                                {
-                                    log.EscribeLog("no se encontro el patron");
-                                }
-                                //resultado = match.Value;
-                                if (i == 0)
-                                {
-                                    tracking_compare = resultado;
-                                }
-                                break;
-                            case "UPS":
-                                string caracter = @"\^FO66(.*?)\^FS";
-                                Match matc = Regex.Match(zplandpdf, caracter);
-                                var track = matc.Groups[1].Value;
-                                resultado = track.Substring(27, 18);
-                                if (i == 0)
-                                {
-                                    tracking_compare = resultado;
-                                }
-                                break;
-                        }
-                        if(i != 0)
-                        {
-                            if (tracking_compare != resultado)
-                            {
-                                log.EscribeLog("las guias no vienen duplicadas");
-                                return true;
+                                    break;
+                                case "UPS":
+                                    string caracter = @"\^FO66(.*?)\^FS";
+                                    Match matc = Regex.Match(zplandpdf, caracter);
+                                    var track = matc.Groups[1].Value;
+                                    resultado = track.Substring(27, 18);
+                                    break;
                             }
-                            else
-                            {
-                                log.EscribeLog("esta duplicado el tracking");
-                                return false;
-                            }
+                            variables.Add(resultado);
                         }
+                        
                     }
                 }
-                log.EscribeLog("solo trae una guia ");
-                    return true;
+                //Generamos una lista y la vamos a compara para ver la info 
+
+                HashSet<string> set = new HashSet<string>();//Usar un HashSet para verificar duplicados
+                List<string> duplicador = new List<string>();
+                List<string> noduplicados = new List<string>();
+                foreach(var item in variables)
+                {
+                    if (!set.Add(item))
+                    {
+                        duplicador.Add(item);
+                    }
+                    else
+                    {
+                        noduplicados.Add(item);
+                    }
+                }
+                return noduplicados.Count;
+                //if(duplicador.Count > 0)
+                //{
+                //    log.EscribeLog("Se encontraron duplicados");
+                //    return false;
+                //}
+                //else
+                //{
+                //    log.EscribeLog("no hay duplicados");
+                //    var pedido = variables.Count;
+                //    return true;
+                //}
             }
             catch (Exception ex)
             {
                 log.EscribeLog("Error al checar el conteo de las guias que hay");
-                return false;
+                return 0;
             }
         }
     }
